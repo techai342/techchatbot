@@ -2,48 +2,106 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Test OpenRouter AI</title>
+  <title>Simple AI Chatbot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+    h1 { color: #333; }
+    #chatBox {
+      width: 400px;
+      height: 400px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 10px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+    .msg {
+      margin: 8px 0;
+      padding: 8px 12px;
+      border-radius: 12px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .user { background: #d1e7ff; align-self: flex-end; }
+    .bot { background: #e8e8e8; align-self: flex-start; }
+    #inputArea {
+      display: flex;
+      gap: 8px;
+    }
+    input {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 8px 14px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+  </style>
 </head>
 <body>
-  <h1>OpenRouter AI Test</h1>
-  <textarea id="userInput" rows="3" cols="50" placeholder="Type your message here"></textarea><br><br>
-  <button id="sendBtn">Send</button>
 
-  <h3>Response:</h3>
-  <pre id="responseArea"></pre>
+  <h1>My AI Chatbot 🤖</h1>
+  <div id="chatBox"></div>
+
+  <div id="inputArea">
+    <input type="text" id="userInput" placeholder="Type your message...">
+    <button id="sendBtn">Send</button>
+  </div>
 
   <script>
-    const sendBtn = document.getElementById('sendBtn');
-    const userInput = document.getElementById('userInput');
-    const responseArea = document.getElementById('responseArea');
+    const chatBox = document.getElementById("chatBox");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
 
-    sendBtn.addEventListener('click', async () => {
-      const msg = userInput.value.trim();
-      if (!msg) return alert("Type a message first!");
+    // Function to add messages to chat box
+    function addMessage(text, sender) {
+      const msg = document.createElement("div");
+      msg.classList.add("msg", sender);
+      msg.textContent = text;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
 
-      responseArea.textContent = "Waiting for response...";
+    // Function to send message
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+      addMessage("🧑: " + text, "user");
+      userInput.value = "";
+
+      addMessage("⏳ Thinking...", "bot");
 
       try {
-        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": "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",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model: "deepseek/deepseek-chat-v3.1:free",
-            messages: [
-              { role: "user", content: msg }
-            ]
-          })
-        });
-
+        const res = await fetch(`https://api.nekolabs.web.id/ai/ai4chat?text=${encodeURIComponent(text)}`);
         const data = await res.json();
-        responseArea.textContent = JSON.stringify(data, null, 2);
-      } catch (err) {
-        responseArea.textContent = "Error: " + err.message;
+        chatBox.lastChild.remove(); // remove "Thinking..."
+        addMessage("🤖: " + (data.result || "No reply."), "bot");
+      } catch (error) {
+        chatBox.lastChild.remove();
+        addMessage("⚠️ Error: " + error.message, "bot");
       }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    userInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendMessage();
     });
   </script>
+
 </body>
 </html>
