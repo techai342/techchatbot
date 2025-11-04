@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AI Chatbot (Fixed Markdown Display)</title>
+  <title>AI Chatbot (Table Fixed Like ChatGPT)</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f0f2f5;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -14,12 +14,12 @@
     }
     h1 { color: #333; }
     #chatBox {
-      width: 420px;
+      width: 450px;
       height: 420px;
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      padding: 10px;
+      padding: 10px 15px;
       overflow-y: auto;
       margin-bottom: 10px;
       display: flex;
@@ -29,12 +29,17 @@
       margin: 8px 0;
       padding: 8px 12px;
       border-radius: 12px;
-      max-width: 85%;
+      max-width: 90%;
       word-wrap: break-word;
     }
-    .user { background: #d1e7ff; align-self: flex-end; }
-    .bot { background: #f3f3f3; align-self: flex-start; }
-
+    .user {
+      background: #cde3ff;
+      align-self: flex-end;
+    }
+    .bot {
+      background: #f3f3f3;
+      align-self: flex-start;
+    }
     #inputArea {
       display: flex;
       gap: 8px;
@@ -55,18 +60,26 @@
     }
     button:hover { background: #0056b3; }
 
-    /* Table design */
+    /* Beautiful table like ChatGPT */
     table {
       border-collapse: collapse;
       width: 100%;
-      margin-top: 6px;
+      margin-top: 10px;
+      margin-bottom: 10px;
     }
     th, td {
-      border: 1px solid #999;
-      padding: 6px 8px;
+      border: 1px solid #d0d0d0;
+      padding: 8px 10px;
       text-align: left;
     }
-    th { background: #007bff; color: white; }
+    th {
+      background-color: #007bff;
+      color: white;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
 
     /* Code block style */
     pre, code {
@@ -96,33 +109,27 @@
     const userInput = document.getElementById("userInput");
     const sendBtn = document.getElementById("sendBtn");
 
-    // Convert Markdown to simple HTML (tables, code, lists, headings)
-    function convertMarkdown(text) {
-      // Convert code blocks (```...```)
-      text = text.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>");
-      
-      // Convert bold, italic, and headings
-      text = text
+    // Function to convert Markdown tables + styling
+    function convertMarkdown(markdown) {
+      // Convert code blocks first
+      markdown = markdown.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>");
+
+      // Headings and formatting
+      markdown = markdown
         .replace(/^### (.*$)/gim, "<h3>$1</h3>")
         .replace(/^## (.*$)/gim, "<h2>$1</h2>")
         .replace(/^# (.*$)/gim, "<h1>$1</h1>")
         .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
-        .replace(/\*(.*?)\*/g, "<i>$1</i>");
-      
-      // Lists
-      text = text.replace(/^\* (.*$)/gim, "<ul><li>$1</li></ul>");
-      text = text.replace(/^\- (.*$)/gim, "<ul><li>$1</li></ul>");
-      
-      // Line breaks
-      text = text.replace(/\n/g, "<br>");
+        .replace(/\*(.*?)\*/g, "<i>$1</i>")
+        .replace(/\n/g, "<br>");
 
       // Convert Markdown tables
       const tableRegex = /((\|.*\|)\n)+/g;
-      text = text.replace(tableRegex, (table) => {
+      markdown = markdown.replace(tableRegex, (table) => {
         const rows = table.trim().split("\n");
-        let html = "<table><tbody>";
+        let html = "<table>";
         rows.forEach((row, index) => {
-          if (/^\|[-\s|]+\|$/.test(row)) return; // skip separator
+          if (/^\|[-\s|]+\|$/.test(row)) return; // skip --- separator
           const cells = row.split("|").filter(c => c.trim() !== "");
           if (index === 0) {
             html += "<tr>" + cells.map(c => `<th>${c.trim()}</th>`).join("") + "</tr>";
@@ -130,13 +137,14 @@
             html += "<tr>" + cells.map(c => `<td>${c.trim()}</td>`).join("") + "</tr>";
           }
         });
-        html += "</tbody></table>";
+        html += "</table>";
         return html;
       });
-      
-      return text;
+
+      return markdown;
     }
 
+    // Add message to chat
     function addMessage(text, sender) {
       const msg = document.createElement("div");
       msg.classList.add("msg", sender);
@@ -145,6 +153,7 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
+    // Send message to API
     async function sendMessage() {
       const text = userInput.value.trim();
       if (!text) return;
@@ -158,8 +167,11 @@
         const data = await res.json();
         chatBox.lastChild.remove();
 
-        // Handle nested object
-        const reply = typeof data.result === "object" ? data.result.response || JSON.stringify(data.result) : data.result;
+        // Handle nested response safely
+        const reply = typeof data.result === "object"
+          ? data.result.response || JSON.stringify(data.result)
+          : data.result;
+
         addMessage("🤖: " + (reply || "No reply."), "bot");
       } catch (error) {
         chatBox.lastChild.remove();
@@ -168,7 +180,9 @@
     }
 
     sendBtn.addEventListener("click", sendMessage);
-    userInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+    userInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
   </script>
 
 </body>
