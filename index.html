@@ -29,7 +29,7 @@
       margin: 8px 0;
       padding: 8px 12px;
       border-radius: 12px;
-      max-width: 90%;
+      max-width: 80%;
       word-wrap: break-word;
     }
     .user { 
@@ -39,17 +39,6 @@
     .bot { 
       background: #e8e8e8; 
       align-self: flex-start; 
-    }
-    table {
-      border-collapse: collapse;
-      margin-top: 5px;
-    }
-    th, td {
-      border: 1px solid #aaa;
-      padding: 4px 8px;
-    }
-    th {
-      background: #ddd;
     }
     #inputArea {
       display: flex;
@@ -70,6 +59,22 @@
       cursor: pointer;
     }
     button:hover { background: #0056b3; }
+
+    /* Table styling for bot responses */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 8px;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 6px 8px;
+      text-align: left;
+    }
+    th {
+      background: #007bff;
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -87,55 +92,41 @@
     const userInput = document.getElementById("userInput");
     const sendBtn = document.getElementById("sendBtn");
 
-    // Function to convert Markdown tables to HTML
+    // Function to convert Markdown tables to HTML tables
     function convertTables(markdown) {
-      const lines = markdown.trim().split("\n");
-      let html = "";
-      let inTable = false;
+      const tableRegex = /((\|.*\|)\n)+/g;
+      return markdown.replace(tableRegex, (table) => {
+        const rows = table.trim().split("\n");
+        let html = "<table><tbody>";
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-
-        if (line.startsWith("|") && line.endsWith("|")) {
-          if (!inTable) {
-            html += "<table>";
-            inTable = true;
-          }
-          // Skip separator line (----)
-          if (line.match(/^\|[-\s|]+\|$/)) continue;
-
-          const cells = line.split("|").slice(1, -1).map(c => c.trim());
-          if (i > 0 && lines[i - 1].match(/^\|[-\s|]+\|$/)) {
-            html += "<tr>" + cells.map(c => `<th>${c}</th>`).join("") + "</tr>";
+        rows.forEach((row, index) => {
+          if (/^\|[-\s|]+\|$/.test(row)) return; // skip separator row
+          const cells = row.split("|").filter(c => c.trim() !== "");
+          if (index === 0) {
+            html += "<tr>" + cells.map(c => `<th>${c.trim()}</th>`).join("") + "</tr>";
           } else {
-            html += "<tr>" + cells.map(c => `<td>${c}</td>`).join("") + "</tr>";
+            html += "<tr>" + cells.map(c => `<td>${c.trim()}</td>`).join("") + "</tr>";
           }
-        } else {
-          if (inTable) {
-            html += "</table>";
-            inTable = false;
-          }
-          html += line + "<br>";
-        }
-      }
+        });
 
-      if (inTable) html += "</table>";
-      return html;
+        html += "</tbody></table>";
+        return html;
+      });
     }
 
-    // Function to add messages to chat box (with Markdown support)
+    // Function to add messages (with Markdown + table support)
     function addMessage(text, sender) {
       const msg = document.createElement("div");
       msg.classList.add("msg", sender);
 
-      // Basic Markdown
+      // Markdown basic formatting
       text = text
         .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>") // bold
         .replace(/\*(.*?)\*/g, "<i>$1</i>")     // italic
-        .replace(/`(.*?)`/g, "<code>$1</code>") // code
-        .replace(/\n/g, "<br>");                // line breaks
+        .replace(/`(.*?)`/g, "<code>$1</code>") // inline code
+        .replace(/\n/g, "<br>");
 
-      // Convert tables after other markdown
+      // Convert Markdown tables to real HTML tables
       text = convertTables(text);
 
       msg.innerHTML = text;
@@ -143,7 +134,7 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Function to send message
+    // Function to send message to the API
     async function sendMessage() {
       const text = userInput.value.trim();
       if (!text) return;
@@ -157,22 +148,10 @@
         const data = await res.json();
 
         chatBox.lastChild.remove(); // remove "Thinking..."
-        console.log("API Response:", data);
-
-        // Get actual bot reply
-        let reply = "No reply.";
-        if (data.result && data.result.response) {
-          reply = data.result.response;
-        } else if (data.response) {
-          reply = data.response;
-        } else if (typeof data.result === "string") {
-          reply = data.result;
-        } else if (data.message) {
-          reply = data.message;
-        }
-
-        addMessage("🤖: " + reply, "bot");
-
+        
+        // Fix for nested object
+        const reply = typeof data.result === "object" ? data.result.response || JSON.stringify(data.result) : data.result;
+        addMessage("🤖: " + (reply || "No reply."), "bot");
       } catch (error) {
         chatBox.lastChild.remove();
         addMessage("⚠️ Error: " + error.message, "bot");
