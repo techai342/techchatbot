@@ -1,89 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TechChatbot</title>
-<style>
-  body { font-family: Arial, sans-serif; background: #f6f8fc; display: flex; flex-direction: column; height: 100vh; margin: 0; }
-  header { background: #0066ff; color: white; padding: 15px; text-align: center; font-size: 1.4em; }
-  #chat { flex: 1; overflow-y: auto; padding: 15px; }
-  .msg { margin-bottom: 10px; padding: 10px; border-radius: 10px; max-width: 80%; }
-  .user { background: #d1e7ff; margin-left: auto; }
-  .bot { background: white; margin-right: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-  footer { display: flex; padding: 10px; border-top: 1px solid #ddd; background: #fff; }
-  input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
-  button { background: #0066ff; color: white; border: none; border-radius: 8px; padding: 10px 15px; margin-left: 8px; cursor: pointer; }
-</style>
+  <meta charset="UTF-8">
+  <title>Test OpenRouter AI</title>
 </head>
 <body>
-<header>🤖 TechChatbot</header>
-
-<div id="chat"></div>
-
-<footer>
-  <input id="userInput" type="text" placeholder="Ask me anything..." />
+  <h1>OpenRouter AI Test</h1>
+  <textarea id="userInput" rows="3" cols="50" placeholder="Type your message here"></textarea><br><br>
   <button id="sendBtn">Send</button>
-</footer>
 
-<script>
-  const chatBox = document.getElementById("chat");
-  const input = document.getElementById("userInput");
-  const button = document.getElementById("sendBtn");
+  <h3>Response:</h3>
+  <pre id="responseArea"></pre>
 
-  // ❗ Replace this with your own key (testing only, not for website)
-  const OPENAI_API_KEY = "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 ";
+  <script>
+    const sendBtn = document.getElementById('sendBtn');
+    const userInput = document.getElementById('userInput');
+    const responseArea = document.getElementById('responseArea');
 
-  async function sendMessage() {
-    const text = input.value.trim();
-    if (!text) return;
-    addMessage(text, "user");
-    input.value = "";
+    sendBtn.addEventListener('click', async () => {
+      const msg = userInput.value.trim();
+      if (!msg) return alert("Type a message first!");
 
-    addMessage("Thinking...", "bot");
+      responseArea.textContent = "Waiting for response...";
 
-    try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: "You are TechChatbot, a friendly and smart assistant that explains things in easy English and motivates students." },
-            { role: "user", content: text }
-          ]
-        })
-      });
+      try {
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer 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",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "deepseek/deepseek-chat-v3.1:free",
+            messages: [
+              { role: "user", content: msg }
+            ]
+          })
+        });
 
-      const data = await res.json();
-      const reply = data.choices?.[0]?.message?.content || "Sorry, I couldn't understand.";
-      replaceLastMessage(reply, "bot");
-    } catch (err) {
-      replaceLastMessage("Error: could not reach server.", "bot");
-    }
-  }
-
-  function addMessage(text, cls) {
-    const div = document.createElement("div");
-    div.className = `msg ${cls}`;
-    div.textContent = text;
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-
-  function replaceLastMessage(text, cls) {
-    const msgs = chatBox.getElementsByClassName(cls);
-    const last = msgs[msgs.length - 1];
-    if (last && last.textContent === "Thinking...") last.textContent = text;
-    else addMessage(text, cls);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-
-  button.addEventListener("click", sendMessage);
-  input.addEventListener("keydown", e => e.key === "Enter" && sendMessage());
-</script>
+        const data = await res.json();
+        responseArea.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        responseArea.textContent = "Error: " + err.message;
+      }
+    });
+  </script>
 </body>
 </html>
