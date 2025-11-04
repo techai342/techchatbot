@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Simple AI Chatbot</title>
+  <title>AI Chatbot (Fixed Markdown Display)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,8 +14,8 @@
     }
     h1 { color: #333; }
     #chatBox {
-      width: 400px;
-      height: 400px;
+      width: 420px;
+      height: 420px;
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
@@ -29,17 +29,12 @@
       margin: 8px 0;
       padding: 8px 12px;
       border-radius: 12px;
-      max-width: 80%;
+      max-width: 85%;
       word-wrap: break-word;
     }
-    .user { 
-      background: #d1e7ff; 
-      align-self: flex-end; 
-    }
-    .bot { 
-      background: #e8e8e8; 
-      align-self: flex-start; 
-    }
+    .user { background: #d1e7ff; align-self: flex-end; }
+    .bot { background: #f3f3f3; align-self: flex-start; }
+
     #inputArea {
       display: flex;
       gap: 8px;
@@ -60,21 +55,30 @@
     }
     button:hover { background: #0056b3; }
 
-    /* Table styling for bot responses */
+    /* Table design */
     table {
       border-collapse: collapse;
       width: 100%;
-      margin-top: 8px;
+      margin-top: 6px;
     }
     th, td {
-      border: 1px solid #aaa;
+      border: 1px solid #999;
       padding: 6px 8px;
       text-align: left;
     }
-    th {
-      background: #007bff;
-      color: white;
+    th { background: #007bff; color: white; }
+
+    /* Code block style */
+    pre, code {
+      background: #222;
+      color: #eee;
+      padding: 8px;
+      border-radius: 6px;
+      display: block;
+      overflow-x: auto;
+      margin-top: 6px;
     }
+    ul { margin-left: 18px; }
   </style>
 </head>
 <body>
@@ -92,15 +96,33 @@
     const userInput = document.getElementById("userInput");
     const sendBtn = document.getElementById("sendBtn");
 
-    // Function to convert Markdown tables to HTML tables
-    function convertTables(markdown) {
+    // Convert Markdown to simple HTML (tables, code, lists, headings)
+    function convertMarkdown(text) {
+      // Convert code blocks (```...```)
+      text = text.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>");
+      
+      // Convert bold, italic, and headings
+      text = text
+        .replace(/^### (.*$)/gim, "<h3>$1</h3>")
+        .replace(/^## (.*$)/gim, "<h2>$1</h2>")
+        .replace(/^# (.*$)/gim, "<h1>$1</h1>")
+        .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+        .replace(/\*(.*?)\*/g, "<i>$1</i>");
+      
+      // Lists
+      text = text.replace(/^\* (.*$)/gim, "<ul><li>$1</li></ul>");
+      text = text.replace(/^\- (.*$)/gim, "<ul><li>$1</li></ul>");
+      
+      // Line breaks
+      text = text.replace(/\n/g, "<br>");
+
+      // Convert Markdown tables
       const tableRegex = /((\|.*\|)\n)+/g;
-      return markdown.replace(tableRegex, (table) => {
+      text = text.replace(tableRegex, (table) => {
         const rows = table.trim().split("\n");
         let html = "<table><tbody>";
-
         rows.forEach((row, index) => {
-          if (/^\|[-\s|]+\|$/.test(row)) return; // skip separator row
+          if (/^\|[-\s|]+\|$/.test(row)) return; // skip separator
           const cells = row.split("|").filter(c => c.trim() !== "");
           if (index === 0) {
             html += "<tr>" + cells.map(c => `<th>${c.trim()}</th>`).join("") + "</tr>";
@@ -108,33 +130,21 @@
             html += "<tr>" + cells.map(c => `<td>${c.trim()}</td>`).join("") + "</tr>";
           }
         });
-
         html += "</tbody></table>";
         return html;
       });
+      
+      return text;
     }
 
-    // Function to add messages (with Markdown + table support)
     function addMessage(text, sender) {
       const msg = document.createElement("div");
       msg.classList.add("msg", sender);
-
-      // Markdown basic formatting
-      text = text
-        .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>") // bold
-        .replace(/\*(.*?)\*/g, "<i>$1</i>")     // italic
-        .replace(/`(.*?)`/g, "<code>$1</code>") // inline code
-        .replace(/\n/g, "<br>");
-
-      // Convert Markdown tables to real HTML tables
-      text = convertTables(text);
-
-      msg.innerHTML = text;
+      msg.innerHTML = convertMarkdown(text);
       chatBox.appendChild(msg);
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Function to send message to the API
     async function sendMessage() {
       const text = userInput.value.trim();
       if (!text) return;
@@ -146,10 +156,9 @@
       try {
         const res = await fetch(`https://corsproxy.io/?https://api.nekolabs.web.id/ai/cf/gpt-oss-120b?text=${encodeURIComponent(text)}`);
         const data = await res.json();
+        chatBox.lastChild.remove();
 
-        chatBox.lastChild.remove(); // remove "Thinking..."
-        
-        // Fix for nested object
+        // Handle nested object
         const reply = typeof data.result === "object" ? data.result.response || JSON.stringify(data.result) : data.result;
         addMessage("🤖: " + (reply || "No reply."), "bot");
       } catch (error) {
@@ -159,9 +168,7 @@
     }
 
     sendBtn.addEventListener("click", sendMessage);
-    userInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") sendMessage();
-    });
+    userInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
   </script>
 
 </body>
