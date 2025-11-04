@@ -95,13 +95,27 @@
       addMessage("⏳ Thinking...", "bot");
 
       try {
-        // Corrected API call
-       const res = await fetch(`https://corsproxy.io/?https://api.nekolabs.web.id/ai/cf/gpt-oss-120b?text=${encodeURIComponent(text)}`);
-
+        // ✅ Using CORS Proxy to avoid fetch errors
+        const res = await fetch(`https://corsproxy.io/?https://api.nekolabs.web.id/ai/cf/gpt-oss-120b?text=${encodeURIComponent(text)}`);
         const data = await res.json();
 
+        console.log("API Response:", data);
         chatBox.lastChild.remove(); // remove "Thinking..."
-        addMessage("🤖: " + (data.result || "No reply."), "bot");
+
+        // ✅ Handle nested JSON structure
+        let reply = "No reply.";
+        if (typeof data.result === "string") {
+          reply = data.result;
+        } else if (data.result && typeof data.result === "object") {
+          reply = data.result.message || JSON.stringify(data.result);
+        } else if (data.response) {
+          reply = data.response;
+        } else if (data.message) {
+          reply = data.message;
+        }
+
+        addMessage("🤖: " + reply, "bot");
+
       } catch (error) {
         chatBox.lastChild.remove();
         addMessage("⚠️ Error: " + error.message, "bot");
