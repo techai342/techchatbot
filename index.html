@@ -85,42 +85,43 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Function to send message
-    async function sendMessage() {
-      const text = userInput.value.trim();
-      if (!text) return;
-      addMessage("🧑: " + text, "user");
-      userInput.value = "";
+  // Function to send message
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text) return;
+  addMessage("🧑: " + text, "user");
+  userInput.value = "";
 
-      addMessage("⏳ Thinking...", "bot");
+  addMessage("⏳ Thinking...", "bot");
 
-      try {
-        // ✅ Using CORS Proxy to avoid fetch errors
-        const res = await fetch(`https://corsproxy.io/?https://api.nekolabs.web.id/ai/cf/gpt-oss-120b?text=${encodeURIComponent(text)}`);
-        const data = await res.json();
+  try {
+    // ✅ Using CORS Proxy to avoid fetch errors
+    const res = await fetch(`https://corsproxy.io/?https://api.nekolabs.web.id/ai/cf/gpt-oss-120b?text=${encodeURIComponent(text)}`);
+    const data = await res.json();
 
-        console.log("API Response:", data);
-        chatBox.lastChild.remove(); // remove "Thinking..."
+    console.log("API Response:", data);
+    chatBox.lastChild.remove(); // remove "Thinking..."
 
-        // ✅ Handle nested JSON structure
-        let reply = "No reply.";
-        if (typeof data.result === "string") {
-          reply = data.result;
-        } else if (data.result && typeof data.result === "object") {
-          reply = data.result.message || JSON.stringify(data.result);
-        } else if (data.response) {
-          reply = data.response;
-        } else if (data.message) {
-          reply = data.message;
-        }
-
-        addMessage("🤖: " + reply, "bot");
-
-      } catch (error) {
-        chatBox.lastChild.remove();
-        addMessage("⚠️ Error: " + error.message, "bot");
-      }
+    // ✅ Fix: extract the actual text reply
+    let reply = "No reply.";
+    if (data.result && data.result.response) {
+      reply = data.result.response;
+    } else if (data.response) {
+      reply = data.response;
+    } else if (typeof data.result === "string") {
+      reply = data.result;
+    } else if (data.message) {
+      reply = data.message;
     }
+
+    addMessage("🤖: " + reply, "bot");
+
+  } catch (error) {
+    chatBox.lastChild.remove();
+    addMessage("⚠️ Error: " + error.message, "bot");
+  }
+}
+
 
     sendBtn.addEventListener("click", sendMessage);
     userInput.addEventListener("keypress", (e) => {
