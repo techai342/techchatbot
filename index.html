@@ -29,7 +29,7 @@
       margin: 8px 0;
       padding: 8px 12px;
       border-radius: 12px;
-      max-width: 80%;
+      max-width: 90%;
       word-wrap: break-word;
     }
     .user { 
@@ -39,6 +39,17 @@
     .bot { 
       background: #e8e8e8; 
       align-self: flex-start; 
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 5px;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 4px 8px;
+    }
+    th {
+      background: #ddd;
     }
     #inputArea {
       display: flex;
@@ -70,70 +81,109 @@
     <input type="text" id="userInput" placeholder="Type your message...">
     <button id="sendBtn">Send</button>
   </div>
-<script>
-  const chatBox = document.getElementById("chatBox");
-  const userInput = document.getElementById("userInput");
-  const sendBtn = document.getElementById("sendBtn");
 
-  // Function to add messages to chat box (supports Markdown)
-  function addMessage(text, sender) {
-    const msg = document.createElement("div");
-    msg.classList.add("msg", sender);
+  <script>
+    const chatBox = document.getElementById("chatBox");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
 
-    // Basic Markdown formatting
-    text = text
-      .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>") // bold
-      .replace(/\*(.*?)\*/g, "<i>$1</i>")     // italic
-      .replace(/`(.*?)`/g, "<code>$1</code>") // inline code
-      .replace(/\n/g, "<br>");                // line breaks
+    // Function to convert Markdown tables to HTML
+    function convertTables(markdown) {
+      const lines = markdown.trim().split("\n");
+      let html = "";
+      let inTable = false;
 
-    msg.innerHTML = text;
-    chatBox.appendChild(msg);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
 
-  // Function to send message
-  async function sendMessage() {
-    const text = userInput.value.trim();
-    if (!text) return;
-    addMessage("🧑: " + text, "user");
-    userInput.value = "";
+        if (line.startsWith("|") && line.endsWith("|")) {
+          if (!inTable) {
+            html += "<table>";
+            inTable = true;
+          }
+          // Skip separator line (----)
+          if (line.match(/^\|[-\s|]+\|$/)) continue;
 
-    addMessage("⏳ Thinking...", "bot");
-
-    try {
-      // ✅ Using CORS Proxy to avoid fetch errors
-      const res = await fetch(`https://corsproxy.io/?https://api.nekolabs.web.id/ai/cf/gpt-oss-120b?text=${encodeURIComponent(text)}`);
-      const data = await res.json();
-
-      chatBox.lastChild.remove(); // remove "Thinking..."
-      console.log("API Response:", data);
-
-      // ✅ Extract actual text reply
-      let reply = "No reply.";
-      if (data.result && data.result.response) {
-        reply = data.result.response;
-      } else if (data.response) {
-        reply = data.response;
-      } else if (typeof data.result === "string") {
-        reply = data.result;
-      } else if (data.message) {
-        reply = data.message;
+          const cells = line.split("|").slice(1, -1).map(c => c.trim());
+          if (i > 0 && lines[i - 1].match(/^\|[-\s|]+\|$/)) {
+            html += "<tr>" + cells.map(c => `<th>${c}</th>`).join("") + "</tr>";
+          } else {
+            html += "<tr>" + cells.map(c => `<td>${c}</td>`).join("") + "</tr>";
+          }
+        } else {
+          if (inTable) {
+            html += "</table>";
+            inTable = false;
+          }
+          html += line + "<br>";
+        }
       }
 
-      addMessage("🤖: " + reply, "bot");
-
-    } catch (error) {
-      chatBox.lastChild.remove();
-      addMessage("⚠️ Error: " + error.message, "bot");
+      if (inTable) html += "</table>";
+      return html;
     }
-  }
 
-  sendBtn.addEventListener("click", sendMessage);
-  userInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") sendMessage();
-  });
-</script>
+    // Function to add messages to chat box (with Markdown support)
+    function addMessage(text, sender) {
+      const msg = document.createElement("div");
+      msg.classList.add("msg", sender);
+
+      // Basic Markdown
+      text = text
+        .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>") // bold
+        .replace(/\*(.*?)\*/g, "<i>$1</i>")     // italic
+        .replace(/`(.*?)`/g, "<code>$1</code>") // code
+        .replace(/\n/g, "<br>");                // line breaks
+
+      // Convert tables after other markdown
+      text = convertTables(text);
+
+      msg.innerHTML = text;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Function to send message
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+      addMessage("🧑: " + text, "user");
+      userInput.value = "";
+
+      addMessage("⏳ Thinking...", "bot");
+
+      try {
+        const res = await fetch(`https://corsproxy.io/?https://api.nekolabs.web.id/ai/cf/gpt-oss-120b?text=${encodeURIComponent(text)}`);
+        const data = await res.json();
+
+        chatBox.lastChild.remove(); // remove "Thinking..."
+        console.log("API Response:", data);
+
+        // Get actual bot reply
+        let reply = "No reply.";
+        if (data.result && data.result.response) {
+          reply = data.result.response;
+        } else if (data.response) {
+          reply = data.response;
+        } else if (typeof data.result === "string") {
+          reply = data.result;
+        } else if (data.message) {
+          reply = data.message;
+        }
+
+        addMessage("🤖: " + reply, "bot");
+
+      } catch (error) {
+        chatBox.lastChild.remove();
+        addMessage("⚠️ Error: " + error.message, "bot");
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    userInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
 
 </body>
 </html>
