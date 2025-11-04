@@ -87,7 +87,8 @@
       addMessage("⏳ Thinking...", "bot");
 
       try {
-        const res = await fetch(`https://corsproxy.io/?ye lo https://api.nekolabs.web.id/ai/ai4chat?text=?text=${encodeURIComponent(text)}`);
+  
+        const url = `https://corsproxy.io/?https://api.nekolabs.web.id/ai/ai4chat?text=${encodeURIComponent(q)}`;
 
         const data = await res.json();
         chatBox.lastChild.remove(); // remove "Thinking..."
