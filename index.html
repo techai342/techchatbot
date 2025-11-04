@@ -22,6 +22,8 @@
       padding: 10px;
       overflow-y: auto;
       margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
     }
     .msg {
       margin: 8px 0;
@@ -30,8 +32,14 @@
       max-width: 80%;
       word-wrap: break-word;
     }
-    .user { background: #d1e7ff; align-self: flex-end; }
-    .bot { background: #e8e8e8; align-self: flex-start; }
+    .user { 
+      background: #d1e7ff; 
+      align-self: flex-end; 
+    }
+    .bot { 
+      background: #e8e8e8; 
+      align-self: flex-start; 
+    }
     #inputArea {
       display: flex;
       gap: 8px;
@@ -87,10 +95,10 @@
       addMessage("⏳ Thinking...", "bot");
 
       try {
-  
-        const url = `https://corsproxy.io/?https://api.nekolabs.web.id/ai/ai4chat?text=${encodeURIComponent(q)}`;
-
+        // Corrected API call
+        const res = await fetch(`https://api.nekolabs.web.id/ai/cf/gpt-oss-120b?text=${encodeURIComponent(text)}`);
         const data = await res.json();
+
         chatBox.lastChild.remove(); // remove "Thinking..."
         addMessage("🤖: " + (data.result || "No reply."), "bot");
       } catch (error) {
